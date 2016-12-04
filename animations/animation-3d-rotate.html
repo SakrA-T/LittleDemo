@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Animation-3D</title>
+	<style type="text/css">
+		html,body{
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			border: 0;
+		}
+		.box{
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			margin: -100px;
+			/* 注意box和cube的位置 */
+			/* background-color: #eee; */
+			cursor:default;
+			/* 整体实现透视效果，不能放在cube里，为什么呢，要好好思考一下 */
+			perspective: 800px;
+		}
+		.cube{
+			position: relative;
+			width: 200px;
+			height: 200px;
+			font: 25px/200px "Consolas";
+			text-align: center;
+			color: #000;
+			transform-style: preserve-3d;
+			/* perspective: 800px; */
+			animation:box_rotation 5s linear 7s infinite both;
+		}
+		.side{
+			position: absolute;
+			width: 200px;
+			height: 200px;
+			border: 1px solid #000;
+			background-color: rgba(0, 0, 0, 0);
+			/* 实现立方体颜色的渐变，看老师demo才做出来的，要好好思考一下 */
+			/* transition定义了当某个属性值发生变化时的过渡方式，所以需要有触发，所以直接写就好了，触发直接自然就会产生过渡，不要再用animation写这种简单过渡了（动画都算不上）！！！浪费时间（微笑 */
+			transition: 1s linear;
+		}
+		/* 颜色的变化是触发的，不是自动进行的，所以不需要设为animation动画，而且设置了的话会影响立方体各边的animation动画，为什么呢，需要思考 */
+		.box:hover .cube .side{border-color:rgba(0,0,0,0);color: #fff;opacity: 0.8;}
+		.box:hover .cube .top{background:#cc33ff;}
+		.box:hover .cube .bottom{background:#00cc66;}
+		.box:hover .cube .left{background:#3366ff;}
+		.box:hover .cube .right{background:#ccff00;}
+		.box:hover .cube .back{background:#ff6666;}
+		.box:hover .cube .front{background:#ff3300;}
+		
+		/* 不同的animation动画请分开做（微笑）不要写成一坨！记住了！省的下次再浪费时间。放在一个animation里写的动画是作用在同一个元素上的不同效果。 */
+		.top{animation:top_rotation 1s linear both;}
+		.bottom{animation:bottom_rotation 1s linear 1s both;}
+		.right{animation:right_rotation 1s linear 2s both;}
+		.left{animation:left_rotation 1s linear 3s both;}
+		.back{animation:back_rotation 1s linear 4s both;}
+		.front{animation:front_rotation 1s linear 5s both;}
+
+		@keyframes top_rotation{
+			to{transform:rotateX(90deg) translateZ(100px);}
+		}
+		@keyframes bottom_rotation{
+			to{transform:rotateX(-90deg) translateZ(100px);}
+		}
+		@keyframes front_rotation{
+			to{transform:translateZ(100px);}
+		}
+		@keyframes back_rotation{
+			to{transform:rotateY(180deg) translateZ(100px);}
+		}
+		@keyframes left_rotation{
+			to{transform:rotateY(-90deg) translateZ(100px);}
+		}
+		@keyframes right_rotation{
+			to{transform:rotateY(90deg) translateZ(100px);}
+		}
+		@keyframes box_rotation{
+			to{transform: rotate3d(1, 1, 1, 360deg);}
+		}
+
+	</style>
+</head>
+<body>
+	<div class="box">
+		<div class="cube">
+			<div class="side front">front</div>
+			<div class="side back">back</div>
+			<div class="side top">top</div>
+			<div class="side bottom">bottom</div>
+			<div class="side left">left</div>
+			<div class="side right">right</div>
+		</div>
+	</div>
+</body>
+</html>
