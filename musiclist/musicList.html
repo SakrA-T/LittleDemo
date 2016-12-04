@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>歌曲列表</title>
+    <!-- STYLE -->
+    <link rel="stylesheet" href="css/base.css"/>
+    <link rel="stylesheet" href="css/module.css"/>
+    <link rel="stylesheet" href="css/unit.css"/>
+    <link rel="stylesheet" href="skin/default/web/css/skin_dark.css">
+    <style>
+    body{overflow-y:auto;border:0;}
+    h1{font-size:30px; margin:20px 0; font-weight:bold; text-align:center;}
+    .whitebg{margin:10px 0;padding:10px; background:#eeeff2; text-shadow:0 1px rgba(255,255,255,0.5);color:#333;}
+    .whitebg h1{ color:#333; text-shadow:none;}
+    .g-bd{position:static;min-height:0;padding:30px;}
+    .m-layer.z-show,.m-menu,.m-dragmdl{position:relative;top:auto;left:auto;}
+    .m-dragmdl{margin:20px;}
+    #parent .fix{width:86px;}
+    #parent .flow{margin-left:86px;}
+    #parent .o-love{width:34px;}
+    #parent .o-love .xlv{margin:3px 0 0;}
+
+    .menu{position:fixed;width:150px;background:#F7F8F9;color:#010101;text-align:left;text-shadow:none;}
+    .menu .itm{height:30px;line-height:30px;padding:5px 30px;}
+    .menu .itm:hover{background:#E9EAEC;}
+    </style>
+	<script src="trimpath.js"></script>
+	<script src="myUtil.js"></script>
+</head>
+<body>
+    <h1>歌曲列表</h1>
+    <div class="m-plylist m-plylist-sort s-bfc5" id="parent">
+      <div class="head f-cb">
+    	  <div class="fix">
+            <div class="th col f-pr"></div>
+            <div class="th col o-love">
+              <span class="ico xlv u-icn4 u-icn4-love j-lvbtn" id="love-all-action"></span>
+            </div>
+          </div>
+    	  <div class="flow f-cb">
+    		<div class="th col">音乐标题</div>
+    		<div class="th col">歌手</div>
+    		<div class="th col">专辑</div>
+    		<div class="th col">时长</div>
+    	  </div>
+      </div>
+    </div>   
+
+    <script type="text/template" id="track-list">
+      <ul>
+        {list tracks as track}
+        <li class="itm j-item">
+          <span class="ico u-icn4 u-icn4-love j-love"></span>
+          <div class="flow f-cb">
+            <div class="td col title">
+              <a href="/track/${track.id}/" class="tit s-bfc8">${track.name}</a>
+            </div>
+            <div class="td col ellipsis">
+              <a href="/artist/${track.artist.id}/" class="s-bfc8 ">${track.artist.name}</a>
+            </div>
+            <div class="td col ellipsis">
+              <a href="/album/${track.album.id}/" class="s-bfc4">${track.album.name}</a>
+            </div>
+            <div class="td col">${track.duration|dur2str}</div>
+          </div>
+        </li>
+        {/list}
+      </ul>
+    </script>
+	<script type="text/template" id="action-list">
+		{list actions as action}
+		<div class="itm" data-action="${action.value}">${action.text}</div>
+		{/list}
+	</script>
+    <script>
+
+	var parent = $('parent');
+	var tplContent = TrimPath.parse($('track-list').textContent);
+	var tplMenu = TrimPath.parse($('action-list').textContent);
+    </script>
+    <script>
+    // 绘制列表
+    function render(parent,list){
+    	 var config = {
+    	 	dur2str:function(duration){
+    	 		// 将时长转换为时间字符串
+    	 		 duration = duration/1000;
+    	 		 var m = Math.floor(duration/60),
+    	 		 	 s = Math.floor(duration%60);
+    	 		 return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+    	 	}
+    	 };
+    	 var html = TrimPath.merge(
+    	 	tplContent,{tracks:list},config
+    	 );
+    	 parent.insertAdjacentHTML('beforeEnd',html);
+    }
+
+    var xhr = createxhr();
+    xhr.open('GET','track.json',true);
+    xhr.onload = function(){
+    	 render(parent, JSON.parse(xhr.responseText));
+    }
+    xhr.send(null);
+    </script>
+    <script type="text/javascript">
+    /**
+     * [selection functions]
+     * @description: 对选中项的操作
+     */
+    var selection = [];
+    // 添加/去除选中样式
+    function select(node,selected){
+    	 if (selected) {
+    	 	if (node.className.indexOf('z-sel')<0) {
+    	 		node.className += ' z-sel';
+    	 	}
+    	 }else{
+    	 	node.className = node.className.replace('z-sel','').trim();
+    	 }
+    }
+    // 获取最后一个选中项
+    function getLastSelection(){
+    	return selection[selection.length-1];
+    }
+    // 判断是否为选中项
+    function isSelected(node){
+    	return selection.indexOf(node)>=0;
+    }
+    // 清空选中项:去除选中样式、将选中项数字赋空
+    function clearSelection(){
+    	 selection.forEach(function(node) {
+    	 	select(node, false);
+    	 });
+    	 selection = [];
+    }
+    // 添加选中项
+    function appendToSelection(node){
+    	 if (selection.indexOf(node)<0) {
+    	 	select(node, true);
+    	 	selection.push(node);
+    	 }
+    }
+    // 删除选中项
+    function removeFromSelection(node) {
+    	var index = selection.indexOf(node);
+    	// 此处要注意0也表示存在
+    	if (index>=0) {
+    		select(node, false);
+    		selection.splice(index,1);
+    	}
+    }
+    // 添加指定范围内的列表为选中项
+    function selectFromTo(list,from,to) {
+    	var doselect = false;
+    	// form到to之间的doselect都是true
+    	list.forEach(function(node) {
+    		if (node == from||node == to) {
+    			appendToSelection(node);
+    			doselect = form!=to && !doselect;
+    		}else{
+    			doselect?appendToSelection(node)
+    					:removeFromSelection(node);
+    		}
+    	});
+    }
+
+    var last;
+    /**
+     * [getTarget description]
+     * @param  {event} event [事件]
+     * @param  {string} clazz [className,默认为j-item]
+     * @description 获得事件发生对象的可利用父元素
+     */
+    function getTarget(event,clazz){
+    	clazz = clazz||'j-item';
+    	event = event || window.event;
+    	var node = eventUtil.getTarget(event);
+    	while(!!node&&(node.className||'').indexOf(clazz)<0){
+    		node = node.parentNode;
+    	}
+    	return node;
+    }
+    /**
+     * [menu function]
+     * @description 对菜单的操作
+     */
+    var menu;
+    var frag = document.createDocumentFragment();
+    function getMenu(html){
+    	 if (!menu) {
+    	 	menu = document.createElement('div');
+    	 	menu.className = 'menu';
+    	 	eventUtil.addEvent(menu, 
+    	 		'click',function(event){
+    				event = event || window.event;
+    	 			var target = eventUtil.getTarget(event);
+    	 			switch(target.dataset.action){
+    	 				case 'insert':insertTrack();break;
+    	 				case 'delete':removeTrack();break;
+    	 				case 'update':updateTrack();break;
+    	 			}
+    	 		}
+    	 	);
+    	 	eventUtil.addEvent(document, 'click', function(event){
+    	 		 frag.appendChild(menu);
+    	 	});
+    	 }
+    	 menu.innerHTML = html;
+    	 return menu;
+    }
+    // 显示右键菜单
+    function showContextMenu(selection,left,top){
+    	 // 单选与多选
+    	 var actions = [
+    	 	{text:'删除歌曲',value:'delete'}
+    	 ];
+    	 // 单选时
+    	 if (selection.length<=1) {
+    	 	actions.push(
+    	 		{text:'插入歌曲',value:'insert'},
+				{text:'编辑歌曲',value:'update'}
+    	 	);
+    	 }
+
+    	 var menu = getMenu(
+    	 	TrimPath.merge(
+    	 		tplMenu,{actions:actions}
+    	 	)
+    	 );
+    	 menu.style.top = top+20+'px';
+    	 menu.style.left = left+10+'px';
+    	 document.body.appendChild(menu);
+    }
+    // 右键菜单
+    eventUtil.addEvent(parent, 
+    	'contextmenu', function(event){
+    		event = event || window.event;
+    	 	var target = getTarget(event);
+    	 	if (!!target) {
+    	 		eventUtil.preventDefault(event);
+    	 		showContextMenu(selection, event.pageX, event.pageY);
+    	 	}
+    	}
+    );
+    eventUtil.addEvent(parent,
+    	'mousedown', function(event){
+    		var target = getTarget(event);
+    		//若是点击的不是列表项，或者ctrl/shift键被按下，则不做任何处理
+    		if (!!target&&!isSelected(target)&&!event.ctrlKey&&!event.shiftKey) {
+    			clearSelection();
+    			appendToSelection(target);
+    		}
+    	}
+    );
+    eventUtil.addEvent(parent,
+    	'mouseup', function(event){
+    		var target = getTarget(event),
+    			selected = isSelected(target);
+    		// 过滤掉右键默认菜单
+    		if(event.button==2&&selected){
+    			return;
+    		}
+    		// ctrl键被按下
+    		if(event.ctrlKey){
+    			selected?removeFromSelection(target)
+    					:appendToSelection(target);
+    		}
+    		// shift键被按下
+    		if (event.shiftKey) {
+    			var list = Array.prototype.slice.call(
+    				parent.getElementsByTagName('li'),0);
+    			if (!last) {
+    				last = getLastSelection()||target;
+    			}
+    			selectFromTo(list, last, target);
+    		}
+    		else{
+    			last = null;
+    		}
+    	}
+    );
+    </script>
+    <script type="text/javascript">
+    /**
+     * [Track function]
+     * @description 列表项的增删改更新展示操作
+     */
+        function showTrackAddForm(callback){
+            var seed = +new Date;
+            callback({
+                "id": seed,
+                "name": "TRACK"+seed,
+                "duration": 160444,
+                "album": {
+                    "id": seed+1,
+                    "name": "热门华语205"
+                },
+                "artist": {
+                    "id": seed+2,
+                    "name": "群星"
+                }
+            });
+        }
+
+        function showTrackUpdateForm(node,callback){
+            var seed = +new Date;
+            callback({
+                "name": "TRACK"+seed,
+                "album": {
+                    "name": "ALBUM"+seed
+                },
+                "artist": {
+                    "name": "ARTIST"+seed
+                }
+            });
+        }
+        // 生成歌曲列表
+        var getTrackItem = function(track){
+            var div = document.createElement('div');
+            render(div,[track]);
+            return div.getElementsByTagName('li')[0];
+        };
+        // 增加列表项
+        function insertTrack(){
+            showTrackAddForm(function(track){
+                selection[0].insertAdjacentElement(
+                    'beforeBegin',
+                    getTrackItem(track)
+                );
+            });
+        }
+        // 删除列表项
+        function removeTrack(){
+            selection.forEach(function(node){
+                node.parentNode.removeChild(node);
+            })
+            selection = [];
+        }
+        function updateTrack(){
+            var node = selection[0];
+            showTrackUpdateForm(
+                node,function(track){
+                    var list = node.getElementsByTagName('a');
+                    list[0].textContent = track.name;
+                    list[1].textContent = track.album.name;
+                    list[2].textContent = track.artist.name;
+                }
+            );
+        }
+    </script>
+    <script type="text/javascript">
+    /**
+     * [love function]
+     * @description 加心减心操作
+     */
+    
+    // 进行加减心操作 
+    function love(node,loved){
+    	var name = node.className||'';
+    	if (loved) {
+    		node.className = name.replace('u-icn4-love','').trim()+' u-icn4-loved';//注意类名前的空格
+    	}else{
+    		node.className = name.replace('u-icn4-loved','').trim()+' u-icn4-love';//注意类名前的空格
+    	}
+    }
+    function toggleLove(node){
+    	var loved = node.className.indexOf('u-icn4-loved')>=0;
+    	loved?love(node,false):love(node,true);
+    	return !loved;
+    }
+    function loveAll(){
+    	var list = Array.prototype.slice.call(
+    		parent.getElementsByClassName('j-love'),0
+    	);
+    	list.forEach(function(node) {
+    		love(node,true);
+    	});
+    }
+    function unloveAll(){
+    	var list = Array.prototype.slice.call(
+    		parent.getElementsByClassName('j-love'),0
+    	);
+    	list.forEach(function(node) {
+    		love(node,false);
+    	});
+    }
+
+    var loveBtn = $('love-all-action');
+    function syncLoveAllState(){
+    	//list为未加心的项
+    	var list = parent.getElementByClassName('u-icn4-love j-love');
+    	if (!list.length) {
+    		love(loveBtn,true);
+    	}else{
+    		love(loveBtn,false);
+    	}
+    }
+    eventUtil.addEvent(parent,
+    	'mousedown', function(event){
+    		event = event||window.event;
+    		 var target = getTarget(event,'j-lvbtn');
+    		 if(!!target){
+    		 	var loved = toggleLove(target);
+    		 	loved?loveAll():unloveAll();
+    		 	return;
+    		 }	 
+    		 var target = getTarget(event,'j-love');
+    		 if (!!target) {
+    		 	toggleLove(target);
+    		 }
+    		 syncLoveAllState();
+    	});
+    </script>
+</body>
+</html>
